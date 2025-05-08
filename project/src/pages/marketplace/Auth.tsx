@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import Button from '../../components/ui/Button';
-import { Mail, Lock, User, Eye, EyeOff, AlertCircle, Store } from 'lucide-react';
+import { Store, ChevronLeft, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 
 const MarketplaceAuth: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,24 +27,21 @@ const MarketplaceAuth: React.FC = () => {
 
     try {
       if (isLogin) {
-        // Login
-        const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password
         });
 
         if (signInError) throw signInError;
-        if (!user) throw new Error('Login failed');
 
-        navigate('/marketplace');
+        const from = (location.state as any)?.from || '/marketplace';
+        navigate(from);
       } else {
-        // Validate password match
         if (formData.password !== formData.confirmPassword) {
           throw new Error('Passwords do not match');
         }
 
-        // Sign up
-        const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -54,31 +53,37 @@ const MarketplaceAuth: React.FC = () => {
         });
 
         if (signUpError) throw signUpError;
-        if (!user) throw new Error('Registration failed');
-
-        // Create user settings
-        const { error: settingsError } = await supabase
-          .from('user_settings')
-          .insert([{
-            user_id: user.id,
-            email_notifications: true,
-            payment_reminders: true,
-            maintenance_updates: true,
-            new_tenants: true,
-            currency: 'IDR',
-            date_format: 'DD/MM/YYYY',
-            payment_reminder_days: 5,
-            session_timeout: 30,
-            login_notifications: true,
-            two_factor_enabled: false
-          }]);
-
-        if (settingsError) throw settingsError;
 
         navigate('/marketplace');
       }
     } catch (err) {
       console.error('Auth error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/marketplace/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setSuccess('Password reset instructions have been sent to your email');
+      setTimeout(() => {
+        setIsForgotPassword(false);
+        setSuccess(null);
+      }, 3000);
+    } catch (err) {
+      console.error('Reset password error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -95,135 +100,147 @@ const MarketplaceAuth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex items-center justify-center gap-2 text-blue-600">
+    <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Back Button */}
+        {(isForgotPassword || !isLogin) && (
+          <button
+            onClick={() => {
+              setIsForgotPassword(false);
+              if (!isLogin) setIsLogin(true);
+            }}
+            className="mb-6 text-blue-600 flex items-center"
+          >
+            <ChevronLeft size={20} />
+            <span>Kembali</span>
+          </button>
+        )}
+
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 text-blue-600 mb-8">
           <Store size={32} />
           <h1 className="text-3xl font-bold">Kostopia</h1>
         </div>
-        <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          {isLogin ? 'Masuk ke Akun Anda' : 'Daftar Akun Baru'}
-        </h2>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 rounded-md p-4 flex items-start">
-              <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
-              <span>{error}</span>
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-600 rounded-2xl p-4 flex items-start">
+            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 bg-green-50 border border-green-200 text-green-600 rounded-2xl p-4">
+            {success}
+          </div>
+        )}
+
+        {/* Form */}
+        <form 
+          onSubmit={isForgotPassword ? handleForgotPassword : handleAuth}
+          className="space-y-4"
+        >
+          {!isLogin && !isForgotPassword && (
+            <div>
+              <input
+                type="text"
+                name="name"
+                placeholder="Nama Lengkap"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleAuth}>
-            {!isLogin && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Nama Lengkap
-                </label>
-                <div className="mt-1 relative">
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <User className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-                </div>
-              </div>
-            )}
+          <div>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-                <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Kata Sandi
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-                <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-500"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            {!isLogin && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Konfirmasi Kata Sandi
-                </label>
-                <div className="mt-1 relative">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <Lock className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-500"
-                  >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <Button
-                type="submit"
-                className="w-full flex justify-center"
-                disabled={loading}
+          {!isForgotPassword && (
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Kata Sandi"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               >
-                {loading ? 'Memproses...' : (isLogin ? 'Masuk' : 'Daftar')}
-              </Button>
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
-          </form>
+          )}
 
+          {!isLogin && !isForgotPassword && (
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                placeholder="Konfirmasi Kata Sandi"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              >
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          )}
+
+          {isLogin && !isForgotPassword && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(true)}
+                className="text-sm text-blue-600"
+              >
+                Lupa kata sandi?
+              </button>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-2xl font-medium flex items-center justify-center"
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : isForgotPassword ? (
+              'Kirim Link Reset'
+            ) : isLogin ? (
+              'Masuk'
+            ) : (
+              'Daftar'
+            )}
+          </button>
+        </form>
+
+        {!isForgotPassword && (
           <div className="mt-6">
-            <Button
-              variant="outline"
-              className="w-full flex justify-center items-center"
+            <button
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError(null);
@@ -234,11 +251,12 @@ const MarketplaceAuth: React.FC = () => {
                   name: ''
                 });
               }}
+              className="w-full py-3 text-blue-600 font-medium bg-blue-50 rounded-2xl"
             >
               {isLogin ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}
-            </Button>
+            </button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
