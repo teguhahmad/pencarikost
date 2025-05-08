@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
-import { Building2, MapPin, Heart, Wifi, DoorClosed, Bed, Bath, Tv, Coffee, CheckCircle } from 'lucide-react';
+import { Building2, MapPin, Heart, Users, Scale as Male, Scale as Female, Users2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface PropertyCardProps {
@@ -51,7 +51,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, lowestPrice, room
       }
 
       if (isSaved) {
-        // Remove from saved
         const { error } = await supabase
           .from('saved_properties')
           .delete()
@@ -61,7 +60,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, lowestPrice, room
         if (error) throw error;
         setIsSaved(false);
       } else {
-        // Add to saved
         const { error } = await supabase
           .from('saved_properties')
           .insert([{
@@ -83,114 +81,111 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, lowestPrice, room
   const roomTypeWithPhotos = roomTypes.find(rt => rt.photos && rt.photos.length > 0);
   const roomPhotos = roomTypeWithPhotos?.photos || [];
 
-  // Get all unique facilities from room types
-  const allFacilities = roomTypes.reduce((acc, rt) => {
-    return [...acc, ...(rt.room_facilities || [])];
-  }, [] as string[]);
-  
-  // Get unique facilities and take top 6
-  const uniqueFacilities = [...new Set(allFacilities)].slice(0, 6);
-
   // Get alternative pricing options
-  const alternativePricing = roomTypes.some(rt => 
+  const hasAlternativePricing = roomTypes.some(rt => 
     rt.enable_daily_price || rt.enable_weekly_price || rt.enable_yearly_price
   );
 
-  const lowestDailyPrice = Math.min(...roomTypes
-    .filter(rt => rt.enable_daily_price && rt.daily_price)
-    .map(rt => rt.daily_price || Infinity));
+  // Get max occupancy and gender preferences
+  const maxOccupancy = Math.max(...roomTypes.map(rt => rt.max_occupancy || 1));
+  const genderPreference = roomTypes[0]?.renter_gender || 'any';
 
-  const lowestWeeklyPrice = Math.min(...roomTypes
-    .filter(rt => rt.enable_weekly_price && rt.weekly_price)
-    .map(rt => rt.weekly_price || Infinity));
-
-  const lowestYearlyPrice = Math.min(...roomTypes
-    .filter(rt => rt.enable_yearly_price && rt.yearly_price)
-    .map(rt => rt.yearly_price || Infinity));
+  const getGenderIcon = () => {
+    switch (genderPreference) {
+      case 'male':
+        return <Male size={16} className="text-blue-500" />;
+      case 'female':
+        return <Female size={16} className="text-pink-500" />;
+      default:
+        return <Users2 size={16} className="text-purple-500" />;
+    }
+  };
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+      className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl shadow-lg"
       onClick={() => navigate(`/marketplace/property/${property.id}`)}
     >
-      <div className="relative h-48">
-        {roomPhotos.length > 0 ? (
-          <img
-            src={roomPhotos[0]}
-            alt={`${property.name} - Room`}
-            className="w-full h-full object-cover"
-          />
-        ) : property.photos && property.photos.length > 0 ? (
-          <img
-            src={property.photos[0]}
-            alt={property.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <Building2 size={48} className="text-gray-400" />
-          </div>
-        )}
-        <button
-          onClick={handleSaveClick}
-          disabled={isLoading}
-          className={`absolute top-2 right-2 p-2 rounded-full ${
-            isSaved 
-              ? 'bg-red-500 text-white' 
-              : 'bg-white text-gray-600 hover:bg-gray-100'
-          } transition-colors`}
-        >
-          <Heart className={isSaved ? 'fill-current' : ''} size={20} />
-        </button>
-      </div>
-
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900">{property.name}</h3>
-        <div className="flex items-center text-gray-600 mt-1">
-          <MapPin size={16} className="mr-1" />
-          <p className="text-sm">{property.address}, {property.city}</p>
-        </div>
-
-        {uniqueFacilities.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {uniqueFacilities.map((facility, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-              >
-                <CheckCircle size={12} className="mr-1" />
-                {facility}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4">
-          <p className="text-sm text-gray-500">Mulai dari</p>
-          <p className="text-lg font-bold text-blue-600">
-            {formatCurrency(lowestPrice)}
-            <span className="text-sm font-normal text-gray-500">/bulan</span>
-          </p>
-
-          {alternativePricing && (
-            <div className="mt-2 space-y-1">
-              {lowestDailyPrice !== Infinity && (
-                <p className="text-sm text-gray-600">
-                  Harian dari {formatCurrency(lowestDailyPrice)}
-                </p>
-              )}
-              {lowestWeeklyPrice !== Infinity && (
-                <p className="text-sm text-gray-600">
-                  Mingguan dari {formatCurrency(lowestWeeklyPrice)}
-                </p>
-              )}
-              {lowestYearlyPrice !== Infinity && (
-                <p className="text-sm text-gray-600">
-                  Tahunan dari {formatCurrency(lowestYearlyPrice)}
-                </p>
-              )}
+      <div className="relative">
+        {/* Image */}
+        <div className="relative h-48">
+          {roomPhotos.length > 0 ? (
+            <img
+              src={roomPhotos[0]}
+              alt={`${property.name} - Room`}
+              className="w-full h-full object-cover"
+            />
+          ) : property.photos && property.photos.length > 0 ? (
+            <img
+              src={property.photos[0]}
+              alt={property.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+              <Building2 size={48} className="text-gray-300" />
             </div>
           )}
+          
+          {/* Save Button */}
+          <button
+            onClick={handleSaveClick}
+            disabled={isLoading}
+            className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md transition-all ${
+              isSaved 
+                ? 'bg-red-500/90 text-white' 
+                : 'bg-white/90 text-gray-700 hover:bg-white'
+            } shadow-lg`}
+          >
+            <Heart className={isSaved ? 'fill-current' : ''} size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-3">
+          {/* Title and Location */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 leading-tight">{property.name}</h3>
+            <div className="flex items-center mt-1 text-gray-500">
+              <MapPin size={14} className="mr-1 flex-shrink-0" />
+              <p className="text-sm truncate">{property.address}, {property.city}</p>
+            </div>
+          </div>
+
+          {/* Room Info */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center text-gray-600">
+              <Users size={16} className="mr-1" />
+              <span>Maks. {maxOccupancy} orang</span>
+            </div>
+            <div className="flex items-center text-gray-600">
+              {getGenderIcon()}
+              <span className="ml-1">
+                {genderPreference === 'male' ? 'Putra' : 
+                 genderPreference === 'female' ? 'Putri' : 'Campur'}
+              </span>
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-baseline">
+              <p className="text-xl font-bold text-blue-600">
+                {formatCurrency(lowestPrice)}
+              </p>
+              <span className="text-sm text-gray-500 ml-1">/bulan</span>
+            </div>
+
+            {hasAlternativePricing && (
+              <p className="text-sm text-gray-500 mt-1">
+                Tersedia sewa {[
+                  roomTypes.some(rt => rt.enable_daily_price) && 'harian',
+                  roomTypes.some(rt => rt.enable_weekly_price) && 'mingguan',
+                  roomTypes.some(rt => rt.enable_yearly_price) && 'tahunan'
+                ].filter(Boolean).join(', ')}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
