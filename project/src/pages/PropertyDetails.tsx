@@ -3,7 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { supabase } from '../lib/supabase';
-import { MapPin, Users, Bath, Wifi, Car, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot } from 'lucide-react';
+import { 
+  MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, 
+  ArrowLeft, ChevronLeft, ChevronRight, Share, Heart, Building2, User, 
+  DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, 
+  CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera,
+  Sun, Shield, Clock
+} from 'lucide-react';
 import Button from '../components/ui/Button';
 
 const facilityIcons: Record<string, React.ReactNode> = {
@@ -16,8 +22,55 @@ const facilityIcons: Record<string, React.ReactNode> = {
   'TV': <Tv className="h-5 w-5 text-blue-600" />
 };
 
+const parkingIcons: Record<string, React.ReactNode> = {
+  'Parkir Motor': <Bike className="h-5 w-5 text-blue-600" />,
+  'Parkir Mobil': <Car className="h-5 w-5 text-blue-600" />,
+  'Parkir Sepeda': <Bike className="h-5 w-5 text-blue-600" />,
+  'CCTV Parkir': <Camera className="h-5 w-5 text-blue-600" />,
+  'Atap Parkir': <Sun className="h-5 w-5 text-blue-600" />,
+  'Penjaga Parkir': <Shield className="h-5 w-5 text-blue-600" />,
+  'Parkir 24 Jam': <Clock className="h-5 w-5 text-blue-600" />
+};
+
 const getFacilityIcon = (facilityName: string) => {
   return facilityIcons[facilityName] || <CircleDot className="h-5 w-5 text-blue-600" />;
+};
+
+const getParkingIcon = (facilityName: string) => {
+  return parkingIcons[facilityName] || <CircleDot className="h-5 w-5 text-blue-600" />;
+};
+
+const getRoomTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    standard: 'bg-blue-100 text-blue-800',
+    deluxe: 'bg-purple-100 text-purple-800',
+    suite: 'bg-indigo-100 text-indigo-800',
+    single: 'bg-green-100 text-green-800',
+    double: 'bg-yellow-100 text-yellow-800',
+  };
+  return colors[type.toLowerCase()] || 'bg-gray-100 text-gray-800';
+};
+
+const getGenderIcon = (gender: string) => {
+  switch (gender) {
+    case 'male':
+      return <Male className="h-5 w-5 text-blue-600" />;
+    case 'female':
+      return <Female className="h-5 w-5 text-pink-600" />;
+    default:
+      return <Users2 className="h-5 w-5 text-purple-600" />;
+  }
+};
+
+const getGenderText = (gender: string) => {
+  switch (gender) {
+    case 'male':
+      return 'Putra';
+    case 'female':
+      return 'Putri';
+    default:
+      return 'Campur';
+  }
 };
 
 const PropertyDetails: React.FC = () => {
@@ -294,7 +347,12 @@ const PropertyDetails: React.FC = () => {
                 <MapPin className="h-5 w-5 mr-2" />
                 <p>{property.address}, {property.city}</p>
               </div>
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-l font-semibold ${getRoomTypeColor(selectedRoomType?.name || roomTypes[0]?.name || 'standard')}`}>
+                    {selectedRoomType?.name || roomTypes[0]?.name || 'Standard'}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-blue-50 rounded-full">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -305,30 +363,30 @@ const PropertyDetails: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-purple-50 rounded-full">
-                    <User className="h-5 w-5 text-purple-600" />
+                    {getGenderIcon(selectedRoomType?.renter_gender || roomTypes[0]?.renter_gender || 'any')}
                   </div>
                   <span className="text-gray-600">
-                    {selectedRoomType?.renter_gender === 'male' ? 'Putra' :
-                     selectedRoomType?.renter_gender === 'female' ? 'Putri' : 'Campur'}
+                    {getGenderText(selectedRoomType?.renter_gender || roomTypes[0]?.renter_gender || 'any')}
                   </span>
                 </div>
               </div>
             </div>
-              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Mengenai kost ini
-                </h2>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {property.description}
-                </p>
-              </div>
+
+            <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Mengenai kost ini
+              </h2>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                {property.description}
+              </p>
+            </div>
           </div>
 
           <div className="px-4 lg:px-0">
             <div className="mt-6 lg:mt-0 bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Harga Sewa
-                </h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Harga Sewa
+              </h2>
               <div className="flex items-baseline">
                 <span className="text-3xl font-bold text-blue-600">
                   {formatCurrency(selectedRoomType?.price || roomTypes[0]?.price || 0)}
@@ -371,6 +429,25 @@ const PropertyDetails: React.FC = () => {
               </div>
             )}
 
+            {selectedRoomType?.bathroom_facilities?.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Fasilitas Toilet
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedRoomType.bathroom_facilities.map((facility, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-3 bg-gray-50 rounded-xl"
+                    >
+                      {getFacilityIcon(facility)}
+                      <span className="text-gray-700 ml-3">{facility}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {property.common_amenities?.length > 0 && (
               <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -390,6 +467,25 @@ const PropertyDetails: React.FC = () => {
               </div>
             )}
 
+            {property.parking_amenities?.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Fasilitas Parkir
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {property.parking_amenities.map((amenity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-3 bg-gray-50 rounded-xl"
+                    >
+                      {getParkingIcon(amenity)}
+                      <span className="text-gray-700 ml-3">{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Kontak
