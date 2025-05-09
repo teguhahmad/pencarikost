@@ -3,25 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { supabase } from '../lib/supabase';
-import {
-  MapPin,
-  Users,
-  Bath,
-  Wifi,
-  Car,
-  Coffee,
-  Phone,
-  Mail,
-  MessageCircle,
-  Send,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle,
-  Share,
-  Heart,
-} from 'lucide-react';
+import { MapPin, Users, Bath, Wifi, Car, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot } from 'lucide-react';
 import Button from '../components/ui/Button';
+
+const facilityIcons: Record<string, React.ReactNode> = {
+  'Meja': <Table className="h-5 w-5 text-blue-600" />,
+  'Kursi': <Chair className="h-5 w-5 text-blue-600" />,
+  'WiFi': <Wifi className="h-5 w-5 text-blue-600" />,
+  'Kasur Single': <Bed className="h-5 w-5 text-blue-600" />,
+  'Lemari': <Shirt className="h-5 w-5 text-blue-600" />,
+  'AC': <Wind className="h-5 w-5 text-blue-600" />,
+  'TV': <Tv className="h-5 w-5 text-blue-600" />
+};
+
+const getFacilityIcon = (facilityName: string) => {
+  return facilityIcons[facilityName] || <CircleDot className="h-5 w-5 text-blue-600" />;
+};
 
 const PropertyDetails: React.FC = () => {
   const { id } = useParams();
@@ -33,6 +30,7 @@ const PropertyDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
   useEffect(() => {
     loadPropertyDetails();
@@ -60,7 +58,7 @@ const PropertyDetails: React.FC = () => {
       setProperty(propertyData.data);
       setRoomTypes(roomTypesData.data || []);
       if (roomTypesData.data && roomTypesData.data.length > 0) {
-        setSelectedRoomType(roomTypesData.data[0]); // Set default selected room type
+        setSelectedRoomType(roomTypesData.data[0]);
       }
     } catch (err) {
       console.error('Error loading property details:', err);
@@ -131,30 +129,6 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
-  const handlePrevImage = () => {
-    if (!property) return;
-    const allImages = [
-      ...(property.photos || []),
-      ...(property.common_amenities_photos || []),
-      ...(property.parking_amenities_photos || []),
-    ];
-    setActiveImageIndex((prev) =>
-      prev === 0 ? allImages.length - 1 : prev - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    if (!property) return;
-    const allImages = [
-      ...(property.photos || []),
-      ...(property.common_amenities_photos || []),
-      ...(property.parking_amenities_photos || []),
-    ];
-    setActiveImageIndex((prev) =>
-      prev === allImages.length - 1 ? 0 : prev + 1
-    );
-  };
-
   const handleChatClick = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -164,7 +138,6 @@ const PropertyDetails: React.FC = () => {
         return;
       }
 
-      // Navigate to chat page with property owner's ID
       navigate('/marketplace/chat', { 
         state: { 
           receiverId: property?.owner_id,
@@ -180,7 +153,7 @@ const PropertyDetails: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
       </div>
     );
   }
@@ -199,7 +172,6 @@ const PropertyDetails: React.FC = () => {
     );
   }
 
-  // Combine all images
   const allImages = [
     ...(property.photos || []),
     ...(property.common_amenities_photos || []),
@@ -207,276 +179,253 @@ const PropertyDetails: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Navigation Bar */}
-      <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+    <div className="min-h-screen bg-gray-50 lg:bg-white">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 safe-top">
+        <div className="px-4 h-16 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/marketplace')}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-700" />
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
+            >
+              <Share className="h-5 w-5 text-gray-700" />
+            </button>
+            <button
+              onClick={handleSaveProperty}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
+            >
+              <Heart
+                className={`h-5 w-5 ${
+                  isSaved ? 'text-red-500 fill-current' : 'text-gray-700'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden lg:block sticky top-0 bg-white border-b border-gray-200 z-50">
+        <div className="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
             <button
               onClick={() => navigate('/marketplace')}
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
-              <ArrowLeft className="h-5 w-5 mr-2" />
+              <ChevronLeft className="h-5 w-5 mr-1" />
               Kembali
             </button>
-            <div className="flex items-center gap-4">
-              <button onClick={handleShare} className="p-2 rounded-full hover:bg-gray-100">
-                <Share className="h-5 w-5 text-gray-600" />
-              </button>
-              <button onClick={handleSaveProperty} className="p-2 rounded-full hover:bg-gray-100">
-                <Heart
-                  className={`h-5 w-5 ${
-                    isSaved ? 'text-red-500 fill-current' : 'text-gray-600'
-                  }`}
-                />
-              </button>
+            <h1 className="text-lg font-semibold text-gray-900">{property.name}</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
+            >
+              <Share className="h-5 w-5" />
+              <span>Bagikan</span>
+            </button>
+            <button
+              onClick={handleSaveProperty}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
+            >
+              <Heart
+                className={`h-5 w-5 ${
+                  isSaved ? 'text-red-500 fill-current' : ''
+                }`}
+              />
+              <span>{isSaved ? 'Tersimpan' : 'Simpan'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:max-w-7xl lg:mx-auto lg:px-8 lg:py-8">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-12">
+          <div>
+            <div className="relative aspect-[4/3] lg:rounded-2xl overflow-hidden bg-gray-100">
+              {allImages.length > 0 ? (
+                <>
+                  <img
+                    src={allImages[activeImageIndex]}
+                    alt={`${property.name} - Image ${activeImageIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-between p-4">
+                    <button
+                      onClick={() => setActiveImageIndex(prev => 
+                        prev === 0 ? allImages.length - 1 : prev - 1
+                      )}
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-gray-700" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex(prev =>
+                        prev === allImages.length - 1 ? 0 : prev + 1
+                      )}
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
+                    >
+                      <ChevronRight className="h-5 w-5 text-gray-700" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+                    <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full">
+                      <p className="text-white text-sm">
+                        {activeImageIndex + 1} / {allImages.length}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Building2 size={48} className="text-gray-300" />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+              <h1 className="text-2xl font-bold text-gray-900">{property.name}</h1>
+              <div className="mt-2 flex items-center text-gray-600">
+                <MapPin className="h-5 w-5 mr-2" />
+                <p>{property.address}, {property.city}</p>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-50 rounded-full">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span className="text-gray-600">
+                    Maks. {selectedRoomType?.max_occupancy || roomTypes[0]?.max_occupancy || 1} orang
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-50 rounded-full">
+                    <User className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="text-gray-600">
+                    {selectedRoomType?.renter_gender === 'male' ? 'Putra' :
+                     selectedRoomType?.renter_gender === 'female' ? 'Putri' : 'Campur'}
+                  </span>
+                </div>
+              </div>
+            </div>
+              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Mengenai kost ini
+                </h2>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                  {property.description}
+                </p>
+              </div>
+          </div>
+
+          <div className="px-4 lg:px-0">
+            <div className="mt-6 lg:mt-0 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Harga Sewa
+                </h2>
+              <div className="flex items-baseline">
+                <span className="text-3xl font-bold text-blue-600">
+                  {formatCurrency(selectedRoomType?.price || roomTypes[0]?.price || 0)}
+                </span>
+                <span className="ml-2 text-gray-500">/bulan</span>
+              </div>
+              {selectedRoomType?.enable_daily_price && (
+                <p className="mt-2 text-gray-600">
+                  Harian: {formatCurrency(selectedRoomType.daily_price || 0)}
+                </p>
+              )}
+              {selectedRoomType?.enable_weekly_price && (
+                <p className="mt-1 text-gray-600">
+                  Mingguan: {formatCurrency(selectedRoomType.weekly_price || 0)}
+                </p>
+              )}
+              {selectedRoomType?.enable_yearly_price && (
+                <p className="mt-1 text-gray-600">
+                  Tahunan: {formatCurrency(selectedRoomType.yearly_price || 0)}
+                </p>
+              )}
+            </div>
+
+            {selectedRoomType?.room_facilities?.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Fasilitas Kamar
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedRoomType.room_facilities.map((facility, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-3 bg-gray-50 rounded-xl"
+                    >
+                      {getFacilityIcon(facility)}
+                      <span className="text-gray-700 ml-3">{facility}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {property.common_amenities?.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Fasilitas Umum
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {property.common_amenities.map((amenity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-3 bg-gray-50 rounded-xl"
+                    >
+                      <Coffee className="h-5 w-5 text-blue-600 mr-3" />
+                      <span className="text-gray-700">{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Kontak
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Phone className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="text-gray-700">{property.phone}</span>
+                </div>
+                <div className="flex items-center">
+                  <Mail className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="text-gray-700">{property.email}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="pt-16">
-        {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column */}
-            <div>
-              {/* Image Gallery */}
-              <div className="relative rounded-2xl overflow-hidden bg-gray-100">
-                {allImages.length > 0 ? (
-                  <>
-                    <img
-                      src={allImages[activeImageIndex]}
-                      alt={`${property.name} - Gambar ${activeImageIndex + 1}`}
-                      className="w-full object-cover aspect-[16/9]"
-                    />
-                    {/* Navigation Buttons */}
-                    <div className="absolute inset-0 flex items-center justify-between p-4">
-                      <button
-                        onClick={handlePrevImage}
-                        className="p-2 rounded-full bg-white/80 hover:bg-white text-gray-800"
-                      >
-                        <ChevronLeft size={24} />
-                      </button>
-                      <button
-                        onClick={handleNextImage}
-                        className="p-2 rounded-full bg-white/80 hover:bg-white text-gray-800"
-                      >
-                        <ChevronRight size={24} />
-                      </button>
-                    </div>
-                    {/* Dot Navigation */}
-                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                      <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex gap-2">
-                        {allImages.map((_, index) => (
-                          <button
-                            key={index}
-                            className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                              index === activeImageIndex ? 'bg-white' : 'bg-white/50'
-                            }`}
-                            onClick={() => setActiveImageIndex(index)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full h-[400px] flex items-center justify-center">
-                    <span className="text-gray-400">Tidak ada gambar</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Cards Informasi Kost */}
-              <div className="space-y-6 mt-6">
-                {/* Card 1: Identitas Kost */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-4">{property.name}</h1>
-                  <div className="text-gray-600 mb-4">
-                    <p className="font-semibold text-gray-800">
-                      {selectedRoomType?.name || roomTypes[0]?.name || 'Kamar'}
-                    </p>
-                    <p className="text-sm">{property.address}, {property.city}</p>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600 border-t pt-3 mt-3">
-                    <div className="flex items-center">
-                      <Users size={16} className="mr-2 text-gray-500" />
-                      Maksimal {selectedRoomType?.max_occupancy || roomTypes[0]?.max_occupancy || 1} orang
-                    </div>
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-4 h-4 rounded-full mr-2 ${
-                          selectedRoomType?.gender_renter === 'Campur'
-                            ? 'bg-blue-200'
-                            : selectedRoomType?.gender_renter === 'Putra'
-                            ? 'bg-indigo-200'
-                            : 'bg-pink-200'
-                        }`}
-                      ></span>
-                      {selectedRoomType?.gender_renter || roomTypes[0]?.gender_renter || 'Campur'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 2: Harga Sewa */}
-                {roomTypes.length > 0 && (
-                  <div className="bg-white rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-3">Harga Sewa</h2>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Bulanan</span>
-                        <span className="font-medium text-blue-600">
-                          {formatCurrency(selectedRoomType?.price || roomTypes[0]?.price || 0)}
-                        </span>
-                      </div>
-                      {selectedRoomType?.enable_daily_price && (
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>Harian</span>
-                          <span>{formatCurrency(selectedRoomType.daily_price || 0)}</span>
-                        </div>
-                      )}
-                      {selectedRoomType?.enable_weekly_price && (
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>Mingguan</span>
-                          <span>{formatCurrency(selectedRoomType.weekly_price || 0)}</span>
-                        </div>
-                      )}
-                      {selectedRoomType?.enable_yearly_price && (
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>Tahunan</span>
-                          <span>{formatCurrency(selectedRoomType.yearly_price || 0)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Card 3: Deskripsi Kost */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-3">Deskripsi Kost</h2>
-                  <p className="text-gray-600 leading-relaxed">
-                    {selectedRoomType?.description ||
-                      properties[0]?.description ||
-                      'Tidak ada deskripsi tersedia.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Room Facilities */}
-              {selectedRoomType?.room_facilities?.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Fasilitas Kamar</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedRoomType.room_facilities.map((facility, index) => (
-                      <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <span className="text-gray-700">{facility}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Bathroom Facilities */}
-              {selectedRoomType?.bathroom_facilities?.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Fasilitas Kamar Mandi</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedRoomType.bathroom_facilities.map((facility, index) => (
-                      <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <span className="text-gray-700">{facility}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Common Amenities */}
-              {property.common_amenities?.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Fasilitas Umum</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {property.common_amenities.map((amenity, index) => (
-                      <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <span className="text-gray-700">{amenity}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Parking Amenities */}
-              {property.parking_amenities?.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Fasilitas Parkir</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {property.parking_amenities.map((amenity, index) => (
-                      <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <span className="text-gray-700">{amenity}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* House Rules */}
-              {property.rules?.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Peraturan Kost</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {property.rules.map((rule, index) => (
-                      <div key={index} className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <span className="text-gray-700">{rule}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Contact Info */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Kontak</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <Phone className="text-gray-400 mr-3" size={20} />
-                    <span>{property.phone}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Mail className="text-gray-400 mr-3" size={20} />
-                    <span>{property.email}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Action Buttons */}
-        <div className="fixed bottom-2 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-200 z-10">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-4">
-            <Button
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-              onClick={handleChatClick}
-              icon={<MessageCircle size={20} />}
-            >
-              Chat dengan Pemilik
-            </Button>
-            <Button
-              variant="success"
-              className="flex-1 bg-green-500 hover:bg-green-600"
-              onClick={handleWhatsAppClick}
-              icon={<Send size={20} />}
-            >
-              WhatsApp
-            </Button>
-          </div>
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-200 safe-bottom">
+        <div className="max-w-7xl mx-auto flex gap-4">
+          <Button
+            className="flex-1"
+            onClick={handleChatClick}
+            icon={<MessageCircle size={20} />}
+          >
+            Chat
+          </Button>
+          <Button
+            variant="success"
+            className="flex-1"
+            onClick={handleWhatsAppClick}
+            icon={<Send size={20} />}
+          >
+            WhatsApp
+          </Button>
         </div>
       </div>
     </div>
