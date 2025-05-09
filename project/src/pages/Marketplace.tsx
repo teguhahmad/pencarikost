@@ -21,6 +21,7 @@ export default function Marketplace() {
   const [cities, setCities] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocationFilter, setShowLocationFilter] = useState(false);
+  const [showSortModal, setShowSortModal] = useState(false);
   const [locationSearchQuery, setLocationSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     priceRange: [0, 10000000],
@@ -29,7 +30,6 @@ export default function Marketplace() {
     type: 'all'
   });
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc'>('newest');
-  const [showSortOptions, setShowSortOptions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -178,56 +178,13 @@ export default function Marketplace() {
             </button>
 
             {/* Sort Button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSortOptions(!showSortOptions)}
-                className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
-              >
-                <ArrowUpDown size={16} />
-                {getSortLabel(sortBy)}
-              </button>
-
-              {showSortOptions && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
-                  <button
-                    onClick={() => {
-                      setSortBy('newest');
-                      setShowSortOptions(false);
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
-                  >
-                    Terbaru
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy('oldest');
-                      setShowSortOptions(false);
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
-                  >
-                    Terlama
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy('price-asc');
-                      setShowSortOptions(false);
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
-                  >
-                    Harga Terendah
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy('price-desc');
-                      setShowSortOptions(false);
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
-                  >
-                    Harga Tertinggi
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => setShowSortModal(true)}
+              className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
+            >
+              <ArrowUpDown size={16} />
+              {getSortLabel(sortBy)}
+            </button>
 
             {/* Filter Button */}
             <button
@@ -240,6 +197,71 @@ export default function Marketplace() {
           </div>
         </div>
       </div>
+
+      {/* Sort Modal */}
+      {showSortModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">Urutkan</h2>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setSortBy('newest');
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left ${
+                    sortBy === 'newest'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Terbaru
+                </button>
+                <button
+                  onClick={() => {
+                    setSortBy('oldest');
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left ${
+                    sortBy === 'oldest'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Terlama
+                </button>
+                <button
+                  onClick={() => {
+                    setSortBy('price-asc');
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left ${
+                    sortBy === 'price-asc'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Harga Terendah
+                </button>
+                <button
+                  onClick={() => {
+                    setSortBy('price-desc');
+                    setShowSortModal(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left ${
+                    sortBy === 'price-desc'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Harga Tertinggi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Location Filter Modal */}
       {showLocationFilter && (
