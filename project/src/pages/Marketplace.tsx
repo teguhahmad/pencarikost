@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../types';
 import { supabase } from '../lib/supabase';
 import FloatingNav from '../components/ui/FloatingNav';
-import { Search, Filter, MapPin, Users, Scale as Male, Users2, Home, Heart, ChevronDown, Loader2 } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { Search, Filter, MapPin, Map, ArrowUpDown } from 'lucide-react';
 import PropertyCards from '../components/marketplace/PropertyCards';
 
 interface RoomWithProperty extends RoomType {
@@ -21,6 +20,7 @@ export default function Marketplace() {
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [cities, setCities] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [filters, setFilters] = useState({
     priceRange: [0, 10000000],
     occupancy: 'all',
@@ -28,6 +28,7 @@ export default function Marketplace() {
     type: 'all'
   });
   const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'newest'>('newest');
+  const [showSortOptions, setShowSortOptions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -123,14 +124,6 @@ export default function Marketplace() {
     }
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F2F2F7] pb-32">
       {/* Header */}
@@ -153,6 +146,60 @@ export default function Marketplace() {
 
           {/* Filter Chips */}
           <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4">
+            {/* Location Filter */}
+            <button
+              onClick={() => setShowLocationFilter(true)}
+              className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
+            >
+              <Map size={16} />
+              {selectedCity === 'all' ? 'Semua Lokasi' : selectedCity}
+            </button>
+
+            {/* Sort Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortOptions(!showSortOptions)}
+                className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
+              >
+                <ArrowUpDown size={16} />
+                {sortBy === 'newest' ? 'Terbaru' : 
+                 sortBy === 'price-asc' ? 'Harga Terendah' : 'Harga Tertinggi'}
+              </button>
+
+              {showSortOptions && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
+                  <button
+                    onClick={() => {
+                      setSortBy('newest');
+                      setShowSortOptions(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+                  >
+                    Terbaru
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('price-asc');
+                      setShowSortOptions(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+                  >
+                    Harga Terendah
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('price-desc');
+                      setShowSortOptions(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+                  >
+                    Harga Tertinggi
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Filter Button */}
             <button
               onClick={() => setShowFilters(true)}
               className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
@@ -160,37 +207,51 @@ export default function Marketplace() {
               <Filter size={16} />
               Filter
             </button>
-            <button
-              className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
-              onClick={() => {
-                const menu = document.createElement('select');
-                menu.className = 'absolute top-0 left-0 opacity-0';
-                menu.onchange = (e) => setSortBy(e.target.value as any);
-                menu.innerHTML = `
-                  <option value="newest">Terbaru</option>
-                  <option value="price-asc">Harga Terendah</option>
-                  <option value="price-desc">Harga Tertinggi</option>
-                `;
-                document.body.appendChild(menu);
-                menu.click();
-                menu.remove();
-              }}
-            >
-              Urutkan
-              <ChevronDown size={16} />
-            </button>
-            {selectedCity !== 'all' && (
-              <button
-                onClick={() => setSelectedCity('all')}
-                className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium"
-              >
-                {selectedCity}
-                <span className="ml-1">&times;</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Location Filter Modal */}
+      {showLocationFilter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-6">Pilih Lokasi</h2>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setSelectedCity('all');
+                    setShowLocationFilter(false);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl text-left ${
+                    selectedCity === 'all'
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Semua Lokasi
+                </button>
+                {cities.map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => {
+                      setSelectedCity(city);
+                      setShowLocationFilter(false);
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl text-left ${
+                      selectedCity === city
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -198,100 +259,11 @@ export default function Marketplace() {
           <div className="text-center py-12">
             <p className="text-red-600">{error}</p>
           </div>
-        ) : filteredRooms.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRooms.map((room) => (
-              <div
-                key={room.id}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm"
-                onClick={() => navigate(`/marketplace/property/${room.property.id}`)}
-              >
-                {/* Room Image */}
-                <div className="relative aspect-[16/9]">
-                  {room.photos && room.photos.length > 0 ? (
-                    <img
-                      src={room.photos[0]}
-                      alt={`${room.name} - ${room.property.name}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <Home size={48} className="text-gray-300" />
-                    </div>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSaveToggle(room.property.id, room.id);
-                    }}
-                    className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md transition-all ${
-                      room.isSaved 
-                        ? 'bg-red-500/90 text-white' 
-                        : 'bg-white/90 text-gray-700 hover:bg-white'
-                    } shadow-lg`}
-                  >
-                    <Heart className={room.isSaved ? 'fill-current' : ''} size={20} />
-                  </button>
-                </div>
-
-                {/* Room Details */}
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{room.property.name}</h3>
-                  <div className="flex items-center text-gray-600 mt-1">
-                    <MapPin size={16} className="mr-1" />
-                    <p className="text-sm">{room.property.address}, {room.property.city}</p>
-                  </div>
-
-                  <div className="flex items-center gap-3 mt-3">
-                    <div className="flex items-center text-gray-600">
-                      <Users size={16} className="mr-1" />
-                      <span className="text-sm">Maks. {room.max_occupancy} orang</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      {room.renter_gender === 'male' ? (
-                        <Male size={16} className="text-blue-500 mr-1" />
-                      ) : room.renter_gender === 'female' ? (
-                        <Users2 size={16} className="text-pink-500 mr-1" />
-                      ) : (
-                        <Users2 size={16} className="text-purple-500 mr-1" />
-                      )}
-                      <span className="text-sm">
-                        {room.renter_gender === 'male' ? 'Putra' : 
-                         room.renter_gender === 'female' ? 'Putri' : 'Campur'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-baseline">
-                      <p className="text-xl font-bold text-blue-600">
-                        {formatCurrency(room.price)}
-                      </p>
-                      <span className="text-sm text-gray-500 ml-1">/bulan</span>
-                    </div>
-                    {(room.enable_daily_price || room.enable_weekly_price || room.enable_yearly_price) && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Tersedia sewa {[
-                          room.enable_daily_price && 'harian',
-                          room.enable_weekly_price && 'mingguan',
-                          room.enable_yearly_price && 'tahunan'
-                        ].filter(Boolean).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
-          <div className="text-center py-12">
-            <Home size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery
-                ? 'Tidak ada kamar yang sesuai dengan pencarian Anda'
-                : 'Belum ada kamar yang tersedia'}
-            </h3>
-          </div>
+          <PropertyCards 
+            rooms={filteredRooms}
+            onSaveToggle={handleSaveToggle}
+          />
         )}
       </div>
 
@@ -319,7 +291,7 @@ export default function Marketplace() {
                 />
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Rp 0</span>
-                  <span>{formatCurrency(filters.priceRange[1])}</span>
+                  <span>Rp {filters.priceRange[1].toLocaleString()}</span>
                 </div>
               </div>
 
