@@ -3,13 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { supabase } from '../lib/supabase';
-import { 
-  MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, 
-  ArrowLeft, ChevronLeft, ChevronRight, Share, Heart, Building2, User, 
-  DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, 
-  CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera,
-  Sun, Shield, Clock
-} from 'lucide-react';
+import { MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronDown, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera, Sun, Shield, Clock, AlertCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 const facilityIcons: Record<string, React.ReactNode> = {
@@ -83,8 +77,11 @@ const PropertyDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isParkingOpen, setIsParkingOpen] = useState(false);
+  const [isCommonOpen, setIsCommonOpen] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
-
+  
   useEffect(() => {
     loadPropertyDetails();
     checkIfSaved();
@@ -450,57 +447,105 @@ const PropertyDetails: React.FC = () => {
 
             {property.common_amenities?.length > 0 && (
               <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Fasilitas Umum
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {property.common_amenities.map((amenity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center p-3 bg-gray-50 rounded-xl"
-                    >
-                      <Coffee className="h-5 w-5 text-blue-600 mr-3" />
-                      <span className="text-gray-700">{amenity}</span>
-                    </div>
-                  ))}
+                <button
+                  type="button"
+                  onClick={() => setIsCommonOpen(prev => !prev)}
+                  className="w-full flex justify-between items-center text-left"
+                >
+                  <h2 className="text-lg font-semibold text-gray-900">Fasilitas Umum</h2>
+                  <ChevronDown
+                    className={`h-5 w-5 transition-transform duration-300 ${
+                      setIsCommonOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+            
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${
+                    isCommonOpen ? 'max-h-960 mt-4 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    {property.common_amenities.map((amenity, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center p-3 bg-gray-50 rounded-xl"
+                      >
+                        <Coffee className="h-5 w-5 text-blue-600 mr-3" />
+                        <span className="text-gray-700">{amenity}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {property.parking_amenities?.length > 0 && (
               <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Fasilitas Parkir
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {property.parking_amenities.map((amenity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center p-3 bg-gray-50 rounded-xl"
-                    >
-                      {getParkingIcon(amenity)}
-                      <span className="text-gray-700 ml-3">{amenity}</span>
-                    </div>
-                  ))}
+                <button
+                  type="button"
+                  onClick={() => setIsParkingOpen(prev => !prev)}
+                  className="w-full flex justify-between items-center text-left"
+                >
+                  <h2 className="text-lg font-semibold text-gray-900">Fasilitas Parkir</h2>
+                  <ChevronDown
+                    className={`h-5 w-5 transition-transform duration-300 ${
+                      isParkingOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+            
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${
+                    isParkingOpen ? 'max-h-960 mt-4 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    {property.parking_amenities.map((amenity, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center p-3 bg-gray-50 rounded-xl"
+                      >
+                        {getParkingIcon(amenity)}
+                        <span className="text-gray-700 ml-3">{amenity}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {property.rules?.length > 0 && (
               <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Peraturan Kost
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {property.rules.map((amenity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center p-3 bg-gray-50 rounded-xl"
-                    >
-                      <Coffee className="h-5 w-5 text-blue-600 mr-3" />
-                      <span className="text-gray-700">{amenity}</span>
-                    </div>
-                  ))}
+                <button
+                  type="button"
+                  onClick={() => setIsRulesOpen(prev => !prev)}
+                  className="w-full flex justify-between items-center text-left"
+                >
+                    <h2 className="text-lg font-semibold text-gray-900">Tampilkan Peraturan Kost</h2>
+                  <ChevronDown
+                    className={`h-5 w-5 transition-transform duration-300 ${
+                      isRulesOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+            
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${
+                    isRulesOpen ? 'max-h-960 mt-4 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    {property.rules.map((rule, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-gray-700"
+                      >
+                        <AlertCircle size={16} className="text-blue-600 flex-shrink-0" />
+                        <span>{rule}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
