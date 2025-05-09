@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { supabase } from '../lib/supabase';
-import { MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronDown, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera, Sun, Shield, Clock, AlertCircle } from 'lucide-react';
+import { MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronDown, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera, Sun, Shield, Clock, AlertCircle, X } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 const facilityIcons: Record<string, React.ReactNode> = {
@@ -81,6 +81,7 @@ const PropertyDetails: React.FC = () => {
   const [isParkingOpen, setIsParkingOpen] = useState(false);
   const [isCommonOpen, setIsCommonOpen] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [showRoomTypes, setShowRoomTypes] = useState(false);
   
   useEffect(() => {
     loadPropertyDetails();
@@ -377,6 +378,22 @@ const PropertyDetails: React.FC = () => {
                 {property.description}
               </p>
             </div>
+
+            <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+              <button
+                onClick={() => setShowRoomTypes(true)}
+                className="w-full flex items-center gap-4"
+              >
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Building2 className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-medium text-gray-900">{property.name}</h3>
+                  <p className="text-sm text-gray-500">Lihat semua tipe kamar</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
           </div>
 
           <div className="px-4 lg:px-0">
@@ -568,6 +585,97 @@ const PropertyDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {showRoomTypes && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end lg:items-center justify-center">
+          <div className="bg-white w-full lg:w-[600px] lg:rounded-2xl max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">{property.name}</h2>
+                    <p className="text-sm text-gray-500">{property.address}, {property.city}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRoomTypes(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-6 space-y-4">
+              {roomTypes.map((roomType) => (
+                <div
+                  key={roomType.id}
+                  className={`p-4 rounded-xl border ${
+                    selectedRoomType?.id === roomType.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoomTypeColor(roomType.name)}`}>
+                      {roomType.name}
+                    </span>
+                    <span className="text-lg font-semibold text-blue-600">
+                      {formatCurrency(roomType.price)}<span className="text-sm text-gray-500">/bulan</span>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Users size={16} />
+                      <span>Maks. {roomType.max_occupancy} orang</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {getGenderIcon(roomType.renter_gender)}
+                      <span>{getGenderText(roomType.renter_gender)}</span>
+                    </div>
+                  </div>
+
+                  {roomType.room_facilities && roomType.room_facilities.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-500 mb-2">Fasilitas:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {roomType.room_facilities.slice(0, 3).map((facility, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
+                          >
+                            {facility}
+                          </span>
+                        ))}
+                        {roomType.room_facilities.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
+                            +{roomType.room_facilities.length - 3} lainnya
+                          </span>
+                        )}
+                      </div>
+                
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setSelectedRoomType(roomType);
+                      setShowRoomTypes(false);
+                    }}
+                    className="mt-4 w-full py-2 text-blue-600 font-medium bg-blue-50 rounded-lg hover:bg-blue-100"
+                  >
+                    Pilih Tipe Ini
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-200 safe-bottom">
         <div className="max-w-7xl mx-auto flex gap-4">
