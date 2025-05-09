@@ -485,6 +485,25 @@ const PropertyDetails: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {property.rules?.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Peraturan Kost
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {property.rules.map((amenity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-3 bg-gray-50 rounded-xl"
+                    >
+                      <Coffee className="h-5 w-5 text-blue-600 mr-3" />
+                      <span className="text-gray-700">{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
