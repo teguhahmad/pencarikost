@@ -21,13 +21,14 @@ export default function Marketplace() {
   const [cities, setCities] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocationFilter, setShowLocationFilter] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     priceRange: [0, 10000000],
     occupancy: 'all',
     gender: 'all',
     type: 'all'
   });
-  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'newest'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc'>('newest');
   const [showSortOptions, setShowSortOptions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,16 +114,37 @@ export default function Marketplace() {
     return matchesSearch && matchesCity && matchesPrice && matchesOccupancy && matchesGender && matchesType;
   }).sort((a, b) => {
     switch (sortBy) {
+      case 'newest':
+        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
+      case 'oldest':
+        return new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime();
       case 'price-asc':
         return a.price - b.price;
       case 'price-desc':
         return b.price - a.price;
-      case 'newest':
-        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
       default:
         return 0;
     }
   });
+
+  const filteredCities = cities.filter(city =>
+    city.toLowerCase().includes(locationSearchQuery.toLowerCase())
+  );
+
+  const getSortLabel = (sort: string) => {
+    switch (sort) {
+      case 'newest':
+        return 'Terbaru';
+      case 'oldest':
+        return 'Terlama';
+      case 'price-asc':
+        return 'Harga Terendah';
+      case 'price-desc':
+        return 'Harga Tertinggi';
+      default:
+        return 'Urutkan';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F2F2F7] pb-32">
@@ -162,8 +184,7 @@ export default function Marketplace() {
                 className="flex items-center gap-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium"
               >
                 <ArrowUpDown size={16} />
-                {sortBy === 'newest' ? 'Terbaru' : 
-                 sortBy === 'price-asc' ? 'Harga Terendah' : 'Harga Tertinggi'}
+                {getSortLabel(sortBy)}
               </button>
 
               {showSortOptions && (
@@ -176,6 +197,15 @@ export default function Marketplace() {
                     className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
                   >
                     Terbaru
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('oldest');
+                      setShowSortOptions(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+                  >
+                    Terlama
                   </button>
                   <button
                     onClick={() => {
@@ -216,12 +246,26 @@ export default function Marketplace() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-6">Pilih Lokasi</h2>
-              <div className="space-y-2">
+              <h2 className="text-xl font-bold mb-4">Pilih Lokasi</h2>
+              
+              {/* Location Search */}
+              <div className="relative mb-4">
+                <input
+                  type="text"
+                  placeholder="Cari lokasi..."
+                  value={locationSearchQuery}
+                  onChange={(e) => setLocationSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-xl text-gray-900 focus:outline-none"
+                />
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+              </div>
+
+              <div className="space-y-2 max-h-96 overflow-y-auto">
                 <button
                   onClick={() => {
                     setSelectedCity('all');
                     setShowLocationFilter(false);
+                    setLocationSearchQuery('');
                   }}
                   className={`w-full px-4 py-3 rounded-xl text-left ${
                     selectedCity === 'all'
@@ -231,12 +275,13 @@ export default function Marketplace() {
                 >
                   Semua Lokasi
                 </button>
-                {cities.map((city) => (
+                {filteredCities.map((city) => (
                   <button
                     key={city}
                     onClick={() => {
                       setSelectedCity(city);
                       setShowLocationFilter(false);
+                      setLocationSearchQuery('');
                     }}
                     className={`w-full px-4 py-3 rounded-xl text-left ${
                       selectedCity === city
