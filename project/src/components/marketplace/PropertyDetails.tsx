@@ -326,6 +326,9 @@ const PropertyDetails: React.FC = () => {
 
           <div className="px-4 lg:px-0">
             <div className="mt-6 lg:mt-0 bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Harga Sewa
+                </h2>
               <div className="flex items-baseline">
                 <span className="text-3xl font-bold text-blue-600">
                   {formatCurrency(selectedRoomType?.price || roomTypes[0]?.price || 0)}
